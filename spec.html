@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraceLens — Technical Specification & Architecture Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+<style>
+  :root {
+    --bg-dark: #090d16;
+    --bg-card: rgba(17, 24, 39, 0.7);
+    --bg-card-hover: rgba(30, 41, 59, 0.8);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-accent: rgba(99, 102, 241, 0.4);
+    
+    --accent-indigo: #6366f1;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    --glow-indigo: rgba(99, 102, 241, 0.25);
+    --glow-cyan: rgba(6, 182, 212, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 85% 65%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  /* Header Navbar */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    background: rgba(9, 13, 22, 0.85);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .brand-logo {
+    background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+    color: #fff;
+    font-weight: 800;
+    padding: 0.4rem 0.7rem;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    box-shadow: 0 0 15px var(--glow-indigo);
+  }
+
+  .brand-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #ffffff, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--accent-emerald);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-emerald);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-emerald);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  /* Main Spec Container */
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 5rem 2rem;
+  }
+
+  /* Hero Banner */
+  .hero-spec {
+    margin-bottom: 3rem;
+    padding: 2.5rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.8));
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-spec::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--glow-indigo) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    font-family: 'Fira Code', monospace;
+    color: var(--accent-cyan);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.8rem;
+  }
+
+  .hero-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 30%, #a5f3fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-desc {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 850px;
+    margin-bottom: 2rem;
+  }
+
+  /* Quick Stat Cards Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-3px);
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Spec Navigation Tabs */
+  .tabs-nav {
+    display: flex;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tab-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+    box-shadow: 0 4px 15px var(--glow-indigo);
+  }
+
+  /* Tab Sections */
+  .tab-section {
+    display: none;
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  .tab-section.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Section Titles */
+  .section-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* Interactive Architecture Spec Diagram */
+  .arch-diagram-wrapper {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 2.5rem;
+    backdrop-filter: blur(12px);
+  }
+
+  .arch-nodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .arch-node {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .arch-node:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 8px 25px var(--glow-cyan);
+    transform: translateY(-4px);
+  }
+
+  .arch-node.selected {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 20px var(--glow-indigo);
+    background: rgba(30, 41, 59, 0.95);
+  }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+  }
+
+  .node-icon {
+    font-size: 1.8rem;
+    color: var(--accent-cyan);
+  }
+
+  .node-type {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    color: var(--text-secondary);
+  }
+
+  .node-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .node-desc {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+  }
+
+  /* Node Inspector Detail Panel */
+  .inspector-panel {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid var(--border-accent);
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .inspector-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .code-block {
+    font-family: 'Fira Code', monospace;
+    background: #030712;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 1.2rem;
+    font-size: 0.88rem;
+    color: #a5f3fc;
+    overflow-x: auto;
+    margin-top: 0.8rem;
+  }
+
+  /* Tools & Capabilities Section */
+  .tools-filter-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 280px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1.2rem;
+    border-radius: 12px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 12px var(--glow-indigo);
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .tool-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .tool-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+  }
+
+  .tool-badge {
+    display: inline-block;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-purple);
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    margin-bottom: 0.8rem;
+  }
+
+  .tool-name {
+    font-family: 'Fira Code', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.6rem;
+  }
+
+  .tool-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+  }
+
+  .tool-params-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .param-tag {
+    display: inline-block;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    color: var(--accent-cyan);
+    margin-right: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .btn-test-tool {
+    margin-top: 1rem;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5f3fc;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .btn-test-tool:hover {
+    background: var(--accent-indigo);
+    color: #fff;
+    box-shadow: 0 4px 15px var(--glow-indigo);
+  }
+
+  /* Specs & Models Table */
+  .spec-table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
+
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .spec-table th, .spec-table td {
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .spec-table th {
+    background: rgba(15, 23, 42, 0.9);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .spec-table td {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+
+  .spec-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .spec-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Modal Playground */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .modal-box {
+    background: #0f172a;
+    border: 1px solid var(--border-accent);
+    border-radius: 20px;
+    max-width: 650px;
+    width: 100%;
+    padding: 2rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  .modal-close:hover { color: #fff; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-logo">TL</span>
+    <span class="brand-title">TraceLens Technical Spec</span>
+  </div>
+  <div class="badge-status">
+    <span class="pulse-dot"></span>
+    <span>Google Cloud Live Agent</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Hero Header -->
+  <div class="hero-spec">
+    <div class="hero-tag">// ADK 1.1.0 • A2A / A2UI PROTOCOL ASSISTANT</div>
+    <h1 class="hero-title">TraceLens AI Technical Specification</h1>
+    <p class="hero-desc">
+      TraceLens is an enterprise developer & support engineer AI assistant built for NEWTOWN Insurance Company. It integrates Vertex AI Reasoning Engine, Firestore incident memory, Cloud Storage asset pipeline, Python code sandbox execution, and A2UI dynamic UI component rendering.
+    </p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Reasoning Model</div>
+        <div class="stat-value">Gemini 2.5 Flash</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Deployment Region</div>
+        <div class="stat-value">GCP us-east1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Wired Agent Tools</div>
+        <div class="stat-value">12 Production Tools</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Response Protocol</div>
+        <div class="stat-value">A2A + A2UI Cards</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('arch')">
+      <span class="material-symbols-outlined">account_tree</span> Architecture
+    </button>
+    <button class="tab-btn" onclick="switchTab('tools')">
+      <span class="material-symbols-outlined">build</span> Tools & Capabilities
+    </button>
+    <button class="tab-btn" onclick="switchTab('models')">
+      <span class="material-symbols-outlined">memory</span> Models & GCP Stack
+    </button>
+    <button class="tab-btn" onclick="switchTab('a2ui')">
+      <span class="material-symbols-outlined">widgets</span> A2UI Schema Engine
+    </button>
+  </div>
+
+  <!-- TAB 1: ARCHITECTURE -->
+  <div id="tab-arch" class="tab-section active">
+    <h2 class="section-title">
+      <span class="material-symbols-outlined" style="color:var(--accent-cyan);">hub</span>
+      System Architecture & Interactive Topology
+    </h2>
+
+    <div class="arch-diagram-wrapper">
+      <p style="color:var(--text-secondary); margin-bottom: 1.5rem;">
+        Click any architecture component node below to inspect its live technical configuration, endpoint details, and exact wiring:
+      </p>
+
+      <div class="arch-nodes-grid">
+        <div class="arch-node selected" onclick="inspectNode('cloud-run', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">cloud</span>
+            <span class="node-type">Frontend Service</span>
+          </div>
+          <div class="node-title">Cloud Run Proxy</div>
+          <div class="node-desc">FastAPI proxy server serving single-page chat UI & forwarding A2A payloads.</div>
+        </div>
+
+        <div class="arch-node" onclick="inspectNode('reasoning-engine', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">psychology</span>
+            <span class="node-type">Vertex AI Engine</span>
+          </div>
+          <div class="node-title">Reasoning Engine</div>
+          <div class="node-desc">Deployed ADK agent runner on Vertex AI with gemini-2.5-flash reasoning core.</div>
+        </div>
+
+        <div class="arch-node" onclick="inspectNode('firestore', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">database</span>
+            <span class="node-type">NoSQL Database</span>
+          </div>
+          <div class="node-title">Cloud Firestore</div>
+          <div class="node-desc">Persistent known_issues collection storing incident root causes & resolutions.</div>
+        </div>
+
+        <div class="arch-node" onclick="inspectNode('memory-bank', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">neurology</span>
+            <span class="node-type">Memory Service</span>
+          </div>
+          <div class="node-title">Vertex AI Memory Bank</div>
+          <div class="node-desc">VertexAiMemoryBankService storing user statements & policy context across sessions.</div>
+        </div>
+
+        <div class="arch-node" onclick="inspectNode('code-sandbox', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">terminal</span>
+            <span class="node-type">Execution Engine</span>
+          </div>
+          <div class="node-title">Agent Engine Sandbox</div>
+          <div class="node-desc">AgentEngineSandboxCodeExecutor running secure Python execution environment.</div>
+        </div>
+
+        <div class="arch-node" onclick="inspectNode('cloud-storage', this)">
+          <div class="node-header">
+            <span class="material-symbols-outlined node-icon">folder_zip</span>
+            <span class="node-type">Storage Bucket</span>
+          </div>
+          <div class="node-title">Cloud Storage Bucket</div>
+          <div class="node-desc">tracelens-assets-* bucket serving generated policy graphics & video animations.</div>
+        </div>
+      </div>
+
+      <div id="inspector-output" class="inspector-panel">
+        <div class="inspector-title">
+          <span class="material-symbols-outlined">info</span>
+          <span id="inspect-title">Cloud Run Proxy Service</span>
+        </div>
+        <p id="inspect-desc" style="color:var(--text-secondary); margin-bottom: 0.8rem;">
+          The web frontend is deployed as a serverless container on GCP Cloud Run (us-east1) running FastAPI and Uvicorn.
+        </p>
+        <div class="code-block" id="inspect-code">
+Service Name: tracelens-frontend
+Region: us-east1
+Image URL: us-east1-docker.pkg.dev/qwiklabs-gcp-02-3e3b7bebe95f/cloud-run-source-deploy/tracelens-frontend
+A2A Route: POST /chat -> Reasoning Engine Proxy
+Static Assets: HTML5, CSS Glassmorphic tokens, Material Symbols, JS Event Listener
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: TOOLS & CAPABILITIES -->
+  <div id="tab-tools" class="tab-section">
+    <h2 class="section-title">
+      <span class="material-symbols-outlined" style="color:var(--accent-purple);">construction</span>
+      Wired Tools & Function Directory
+    </h2>
+
+    <div class="tools-filter-bar">
+      <input type="text" id="tool-search" class="search-input" placeholder="🔍 Search tool name, capability, or GCP service..." oninput="filterTools()">
+    </div>
+
+    <div class="tools-grid" id="tools-container">
+
+      <!-- Tool 1 -->
+      <div class="tool-card" data-keywords="firestore incident lookup known issues">
+        <div>
+          <span class="tool-badge">GCP FIRESTORE</span>
+          <div class="tool-name">lookup_known_issue</div>
+          <p class="tool-desc">Queries the Firestore known_issues collection for matching production incidents, bug tickets, root causes, and verified fix steps.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">query: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('lookup_known_issue', 'query: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 2 -->
+      <div class="tool-card" data-keywords="firestore incident store save resolved issue">
+        <div>
+          <span class="tool-badge">GCP FIRESTORE</span>
+          <div class="tool-name">store_resolved_issue</div>
+          <p class="tool-desc">Stores newly diagnosed and resolved incidents directly into Firestore for future triage reuse across support engineers.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">issue_id: str</span>
+          <span class="param-tag">symptom: str</span>
+          <span class="param-tag">fix_action: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('store_resolved_issue', 'issue_id, symptom, fix_action')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 3 -->
+      <div class="tool-card" data-keywords="vertex ai memory bank remember fact allergy">
+        <div>
+          <span class="tool-badge">VERTEX MEMORY BANK</span>
+          <div class="tool-name">remember_user_fact</div>
+          <p class="tool-desc">Stores user facts, policy guidelines, and preferences into long-term Vertex AI Memory Bank for cross-session recall.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">fact: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('remember_user_fact', 'fact: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 4 -->
+      <div class="tool-card" data-keywords="vertex ai memory bank search history">
+        <div>
+          <span class="tool-badge">VERTEX MEMORY BANK</span>
+          <div class="tool-name">search_user_memory_bank</div>
+          <p class="tool-desc">Searches past session history and stored long-term memories using semantic similarity in Vertex AI Memory Bank.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">query: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('search_user_memory_bank', 'query: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 5 -->
+      <div class="tool-card" data-keywords="vertex ai imagen image generation gcs">
+        <div>
+          <span class="tool-badge">VERTEX AI IMAGEN</span>
+          <div class="tool-name">generate_domain_image</div>
+          <p class="tool-desc">Generates visual domain graphics and topology diagrams using gemini-3.1-flash-lite-image and uploads to GCS bucket.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">prompt: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('generate_domain_image', 'prompt: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 6 -->
+      <div class="tool-card" data-keywords="vertex ai video generation gcs gemini omni">
+        <div>
+          <span class="tool-badge">VERTEX AI OMNI VIDEO</span>
+          <div class="tool-name">generate_domain_video</div>
+          <p class="tool-desc">Generates animated video clips and process animations using gemini-omni-flash-preview and uploads to GCS.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">prompt: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('generate_domain_video', 'prompt: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 7 -->
+      <div class="tool-card" data-keywords="python sandbox code executor agent engine">
+        <div>
+          <span class="tool-badge">AGENT ENGINE SANDBOX</span>
+          <div class="tool-name">execute_python_code</div>
+          <p class="tool-desc">Executes arbitrary Python code snippets inside an isolated Agent Engine Sandbox execution container and returns stdout/stderr.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">code: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('execute_python_code', 'code: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 8 -->
+      <div class="tool-card" data-keywords="health check ping latency website status">
+        <div>
+          <span class="tool-badge">DIAGNOSTICS</span>
+          <div class="tool-name">check_website_status</div>
+          <p class="tool-desc">Performs live HTTP ping checks, status code verifications, and latency measurements for target web domains.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">target: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('check_website_status', 'target: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 9 -->
+      <div class="tool-card" data-keywords="network ip geolocation isp lookup">
+        <div>
+          <span class="tool-badge">NETWORK UTILS</span>
+          <div class="tool-name">lookup_ip_network_info</div>
+          <p class="tool-desc">Retrieves ISP provider, AS network, organization, and country/city geolocation details for target IP addresses or domains.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">target: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('lookup_ip_network_info', 'target: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 10 -->
+      <div class="tool-card" data-keywords="architecture specs docs diagram query">
+        <div>
+          <span class="tool-badge">SYSTEM SPECS</span>
+          <div class="tool-name">query_architecture_docs</div>
+          <p class="tool-desc">Retrieves architecture specs and diagrams for NEWTOWN Insurance applications (Web UI, REST APIs, MDB SMS Flow).</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">app_name: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('query_architecture_docs', 'app_name: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 11 -->
+      <div class="tool-card" data-keywords="log trace error parse stack trace">
+        <div>
+          <span class="tool-badge">LOG ANALYZER</span>
+          <div class="tool-name">analyze_log_trace</div>
+          <p class="tool-desc">Parses raw stack traces and error logs to extract exception types, failing line numbers, HTTP status codes, and fix recommendations.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">raw_log: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('analyze_log_trace', 'raw_log: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+      <!-- Tool 12 -->
+      <div class="tool-card" data-keywords="weather timezone time current">
+        <div>
+          <span class="tool-badge">HELPER UTILS</span>
+          <div class="tool-name">get_weather & get_current_time</div>
+          <p class="tool-desc">Helper utility functions for retrieving current location weather reports and local timezone times.</p>
+          <div class="tool-params-title">Parameters</div>
+          <span class="param-tag">query: str</span>
+        </div>
+        <button class="btn-test-tool" onclick="openPlayground('get_current_time', 'query: string')">
+          <span class="material-symbols-outlined">play_arrow</span> Inspect Schema Payload
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB 3: MODELS & GCP STACK -->
+  <div id="tab-models" class="tab-section">
+    <h2 class="section-title">
+      <span class="material-symbols-outlined" style="color:var(--accent-cyan);">layers</span>
+      Google Cloud Tech Stack & Model Matrix
+    </h2>
+
+    <div class="spec-table-container">
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Layer / Component</th>
+            <th>Google Cloud Service</th>
+            <th>Technical Model / Specification</th>
+            <th>Deployment ID / Wiring</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Reasoning Core</strong></td>
+            <td>Vertex AI Agent Runtime</td>
+            <td>Gemini 2.5 Flash (`gemini-2.5-flash`)</td>
+            <td>`reasoningEngines/4553268965643649024`</td>
+          </tr>
+          <tr>
+            <td><strong>Web Frontend Proxy</strong></td>
+            <td>Google Cloud Run</td>
+            <td>FastAPI + Uvicorn Async Proxy</td>
+            <td>`tracelens-frontend` (us-east1)</td>
+          </tr>
+          <tr>
+            <td><strong>Image Generation</strong></td>
+            <td>Vertex AI Imagen API</td>
+            <td>`gemini-3.1-flash-lite-image`</td>
+            <td>`generate_domain_image` tool</td>
+          </tr>
+          <tr>
+            <td><strong>Video Generation</strong></td>
+            <td>Vertex AI Video API</td>
+            <td>`gemini-omni-flash-preview`</td>
+            <td>`generate_domain_video` tool</td>
+          </tr>
+          <tr>
+            <td><strong>Long-Term Memory</strong></td>
+            <td>Vertex AI Memory Bank</td>
+            <td>`VertexAiMemoryBankService`</td>
+            <td>Persistent user memory bank tools</td>
+          </tr>
+          <tr>
+            <td><strong>Incident Database</strong></td>
+            <td>Google Cloud Firestore</td>
+            <td>Native NoSQL Document Database</td>
+            <td>`known_issues` collection</td>
+          </tr>
+          <tr>
+            <td><strong>Asset Storage</strong></td>
+            <td>Google Cloud Storage</td>
+            <td>Standard Regional GCS Bucket</td>
+            <td>`tracelens-assets-qwiklabs-gcp-02-3e3b7bebe95f`</td>
+          </tr>
+          <tr>
+            <td><strong>Code Sandbox</strong></td>
+            <td>Agent Engine Sandbox</td>
+            <td>`AgentEngineSandboxCodeExecutor`</td>
+            <td>`execute_python_code` Python sandbox</td>
+          </tr>
+          <tr>
+            <td><strong>Agent Framework</strong></td>
+            <td>Google ADK 1.1.0</td>
+            <td>A2A + A2UI Protocol Adapter</td>
+            <td>`agents-cli-manifest.yaml`</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 4: A2UI SCHEMA ENGINE -->
+  <div id="tab-a2ui" class="tab-section">
+    <h2 class="section-title">
+      <span class="material-symbols-outlined" style="color:var(--accent-rose);">widgets</span>
+      A2UI Dynamic Catalog & Component Engine
+    </h2>
+
+    <div class="hero-spec" style="background: rgba(15, 23, 42, 0.9);">
+      <div class="hero-tag">// A2UI PROTOCOL CATALOG SPECIFICATION</div>
+      <h3 style="font-family:'Outfit', sans-serif; font-size:1.4rem; color:#fff; margin-bottom: 0.8rem;">
+        Adaptive UI Schema Manager (`A2uiSchemaManager`)
+      </h3>
+      <p style="color:var(--text-secondary); margin-bottom: 1.2rem;">
+        TraceLens uses the **A2UI (Agent-to-UI)** schema protocol to return rich, structured UI cards, columns, option chips, and image assets dynamically inside the chat interface. Below is the active A2UI catalog schema structure:
+      </p>
+
+      <div class="code-block">
+{
+  "catalog": "BasicCatalog",
+  "components": [
+    { "type": "Card", "properties": ["id", "elevation", "border"] },
+    { "type": "Column", "properties": ["gap", "alignment"] },
+    { "type": "Row", "properties": ["justify", "align"] },
+    { "type": "Text", "properties": ["text", "variant", "color"] },
+    { "type": "Image", "properties": ["src", "alt", "borderRadius"] },
+    { "type": "Button", "properties": ["label", "action", "chipStyle"] }
+  ],
+  "callback": "a2ui_callback"
+}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal Playground -->
+<div id="playground-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-tool-title">Tool Schema Inspector</div>
+      <button class="modal-close" onclick="closePlayground()">&times;</button>
+    </div>
+    <p style="color:var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;" id="modal-tool-desc">
+      Inspect the JSON schema payload generated when the agent invokes this tool:
+    </p>
+    <div class="code-block" id="modal-json-output">
+{
+  "tool": "lookup_known_issue",
+  "parameters": {
+    "query": "MDB SMS service timeout error 504"
+  },
+  "protocol": "A2A 1.0",
+  "response_format": "A2UI Card payload + JSON text"
+}
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>TraceLens Technical Specification • NEWTOWN Insurance Assistant • Built with Google ADK 1.1.0 & Vertex AI</p>
+</footer>
+
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  }
+
+  function inspectNode(nodeId, element) {
+    document.querySelectorAll('.arch-node').forEach(node => node.classList.remove('selected'));
+    element.classList.add('selected');
+
+    const titleEl = document.getElementById('inspect-title');
+    const descEl = document.getElementById('inspect-desc');
+    const codeEl = document.getElementById('inspect-code');
+
+    const nodeData = {
+      'cloud-run': {
+        title: 'Cloud Run Proxy Service',
+        desc: 'The web frontend is deployed as a serverless container on GCP Cloud Run (us-east1) running FastAPI and Uvicorn.',
+        code: `Service Name: tracelens-frontend\nRegion: us-east1\nImage URL: us-east1-docker.pkg.dev/qwiklabs-gcp-02-3e3b7bebe95f/cloud-run-source-deploy/tracelens-frontend\nA2A Route: POST /chat -> Reasoning Engine Proxy\nStatic Assets: HTML5, CSS Glassmorphic tokens, Material Symbols, JS Event Listener`
+      },
+      'reasoning-engine': {
+        title: 'Vertex AI Reasoning Engine',
+        desc: 'Deployed ADK agent runner instance executing reasoning workflows with gemini-2.5-flash.',
+        code: `Resource Name: projects/1086733222406/locations/us-east1/reasoningEngines/4553268965643649024\nReasoning Model: gemini-2.5-flash\nFramework: google.adk.agents.Agent\nProtocol: A2A (Agent-to-Agent)\nDeployed Tools: 12 Function declarations`
+      },
+      'firestore': {
+        title: 'Google Cloud Firestore Database',
+        desc: 'NoSQL document storage holding the known_issues collection for incident triage and root cause lookup.',
+        code: `Database ID: (default)\nCollection: known_issues\nSchema Fields: issue_id, symptom, root_cause, resolution, service, date_added\nTools Wired: lookup_known_issue, store_resolved_issue`
+      },
+      'memory-bank': {
+        title: 'Vertex AI Memory Bank Service',
+        desc: 'VertexAiMemoryBankService providing vector-similarity long-term memory across chat sessions.',
+        code: `Service Class: VertexAiMemoryBankService\nTools Wired: remember_user_fact, remember_user_allergy, search_user_memory_bank\nMemory Types: User policy guidelines, statement facts, preferences`
+      },
+      'code-sandbox': {
+        title: 'Agent Engine Sandbox Execution Container',
+        desc: 'Isolated Python code execution environment for debugging code snippets safely.',
+        code: `Executor Class: AgentEngineSandboxCodeExecutor\nTool Wired: execute_python_code\nRuntime: Python 3.11+ Isolated Container\nOutputs: Captured stdout, stderr, exception tracebacks`
+      },
+      'cloud-storage': {
+        title: 'Google Cloud Storage Asset Bucket',
+        desc: 'Public asset bucket storing generated policy images, architecture diagrams, and video clips.',
+        code: `Bucket Name: tracelens-assets-qwiklabs-gcp-02-3e3b7bebe95f\nGenerative Models: gemini-3.1-flash-lite-image, gemini-omni-flash-preview\nPublic Serve: Direct HTTPS media URLs`
+      }
+    };
+
+    if (nodeData[nodeId]) {
+      titleEl.textContent = nodeData[nodeId].title;
+      descEl.textContent = nodeData[nodeId].desc;
+      codeEl.textContent = nodeData[nodeId].code;
+    }
+  }
+
+  function filterTools() {
+    const q = document.getElementById('tool-search').value.toLowerCase();
+    document.querySelectorAll('.tool-card').forEach(card => {
+      const keywords = card.getAttribute('data-keywords') + ' ' + card.innerText.toLowerCase();
+      if (keywords.includes(q)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  function openPlayground(toolName, params) {
+    document.getElementById('modal-tool-title').textContent = 'Tool: ' + toolName;
+    document.getElementById('modal-json-output').textContent = JSON.stringify({
+      tool_name: toolName,
+      parameters_schema: params,
+      status: "WIRED_AND_ACTIVE",
+      gcp_integration: "Vertex AI / Firestore / GCS / Sandbox",
+      example_payload: {
+        tool: toolName,
+        args: { query: "sample request for " + toolName }
+      }
+    }, null, 2);
+    document.getElementById('playground-modal').style.display = 'flex';
+  }
+
+  function closePlayground() {
+    document.getElementById('playground-modal').style.display = 'none';
+  }
+</script>
+</body>
+</html>
